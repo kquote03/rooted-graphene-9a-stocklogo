@@ -12,21 +12,52 @@ It is the same as upstream, except that the GrapheneOS boot animation is replace
 The AVB public key for `fastboot flash avb_custom_key` is `avb_pkmd.bin` on the `gh-pages` branch:
 `curl -sLO https://raw.githubusercontent.com/kquote03/rooted-graphene-9a-stocklogo/gh-pages/avb_pkmd.bin`
 
-Apart from that, follow the installation steps in the [README](README.md), with one change:
+## Initial installation (Pixel 9a, tested)
 
-> ⚠️ This fork also modifies the `product` partition, so when extracting the OTA for the initial installation you **must** add `--all`:
-> ```bash
-> avbroot ota extract --input /path/to/ota.zip --directory extracted --fastboot --all
-> ```
-> Without it, `product` is not flashed, the stock GrapheneOS `product` doesn't match the patched `vbmeta`, and the device shows "Your device is corrupt".
+The README's sideload-based install doesn't work on the Pixel 9a: recovery fails with `kPostinstallMountError (63)`
+(upstream [#313](https://github.com/schnatterer/rooted-graphene/issues/313), [#346](https://github.com/schnatterer/rooted-graphene/issues/346)).
+This sequence, based on the workaround in [#338](https://github.com/schnatterer/rooted-graphene/issues/338), works.
+Keep the bootloader **unlocked** until the last step, and **never switch slots by hand**: slot b is unbootable until the first OTA.
 
-> ⚠️ On the Pixel 9a, `adb sideload` in recovery fails with `kPostinstallMountError (63)` (upstream [#313](https://github.com/schnatterer/rooted-graphene/issues/313), [#346](https://github.com/schnatterer/rooted-graphene/issues/346)), so the sideload step can't clear "device is corrupt".
-> Instead, use the workaround from [#338](https://github.com/schnatterer/rooted-graphene/issues/338) (bootloader still unlocked, never switch slots):
-> 1. `fastboot flashall --skip-reboot` (with `ANDROID_PRODUCT_OUT=extracted`, extracted with `--all`)
-> 2. `fastboot reboot-bootloader && fastboot --disable-verity --disable-verification flash vbmeta extracted/vbmeta.img && fastboot reboot`, and let it boot to setup
-> 3. Back in the bootloader: `fastboot reboot fastboot`, then `fastboot flash <p> extracted/<p>.img` for product, system, system_ext, system_dlkm, vendor and vendor_dlkm
-> 4. `fastboot reboot bootloader && fastboot flash vbmeta extracted/vbmeta.img && fastboot reboot`
-> 5. Test an update through Custota (long-press Version, Allow reinstall) before you run `fastboot flashing lock`.
+1. Unlock the bootloader and install the GrapheneOS factory image **with the same version** as the OTA, using the security-preview build
+   (`https://releases.grapheneos.org/tegu-install-<version>01.zip`) and `./flash-all.sh`.
+   Run `adb kill-server` first, and plug the phone in directly, not through a hub: either can make fastboot hang.
+2. Extract **all** partitions and flash them. `--all` is required, because this fork also modifies `product`.
+   Without it, `product` doesn't match `vbmeta` and the device shows "Your device is corrupt".
+   ```bash
+   avbroot ota extract --input <ota>.zip --directory extracted --fastboot --all
+   export ANDROID_PRODUCT_OUT=extracted
+   fastboot flashall --skip-reboot
+   ```
+3. Set your AVB key:
+   ```bash
+   fastboot reboot-bootloader
+   fastboot erase avb_custom_key
+   fastboot flash avb_custom_key avb_pkmd.bin
+   ```
+4. Boot once with verification disabled. If you see the "corrupt" warning, press power to continue.
+   ```bash
+   fastboot --disable-verity --disable-verification flash vbmeta extracted/vbmeta.img
+   fastboot reboot
+   ```
+5. Go back to the bootloader (hold power and volume down), then reflash the dynamic partitions from fastbootd and restore the real vbmeta:
+   ```bash
+   fastboot reboot fastboot
+   for p in product system system_ext system_dlkm vendor vendor_dlkm; do fastboot flash $p extracted/$p.img; done
+   fastboot reboot bootloader
+   fastboot flash vbmeta extracted/vbmeta.img
+   fastboot reboot
+   ```
+   Press power at the "corrupt" warning again.
+6. In GrapheneOS, set the Custota URL (see above). Long-press **Version**, choose **Allow reinstall**, then install and reboot.
+   This OTA install clears the bootloader's sticky `avb-hastree-error-mode:eio` flag, which causes the "corrupt" warning,
+   and moves the phone to slot b the proper way.
+7. Run `fastboot flashing lock`. **Never turn off OEM unlocking** afterwards.
+
+Troubleshooting:
+* If a boot fails, check `fastboot getvar slot-retry-count:a`. `fastboot --set-active=a` resets the counter without switching slots.
+* The bootloader stays reachable throughout, so GrapheneOS's `flash-all.sh` always gets you back to a working phone.
+* Disable the System Updater app, or block its network access.
 
 ## What differs from upstream
 
