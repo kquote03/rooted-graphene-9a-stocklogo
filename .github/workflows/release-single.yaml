@@ -19,6 +19,9 @@ on:
       magisk-preinit-device:
         type: string
         default: ''
+      skip-pixincreate:
+        type: boolean
+        default: true
   
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -90,7 +93,7 @@ jobs:
           echo "SKIP_ROOTLESS=$(echo '${{ github.event.inputs.skip-rootless || '' }}' | xargs)" >> $GITHUB_ENV
           # Note the explicit 'true' fallback: an empty value would enable the flavor,
           # because the script only skips on the literal string "true"
-          echo "SKIP_PIXINCREATE=$(echo '${{ github.event.inputs.skip-pixincreate || 'true' }}' | xargs)" >> $GITHUB_ENV
+          echo "SKIP_PIXINCREATE=$(echo '${{ github.event.inputs.skip-pixincreate || (inputs.skip-pixincreate == false && 'false') || 'true' }}' | xargs)" >> $GITHUB_ENV
           echo "SKIP_RELEASE=$(echo '${{ github.event.inputs.skip-release || '' }}' | xargs)" >> $GITHUB_ENV
           
           if [[ "${{ github.event_name }}" == "push" ]]  || [[ "${{ github.event_name }}" == "pull_request" ]]; then

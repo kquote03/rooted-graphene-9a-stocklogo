@@ -1,0 +1,43 @@
+name: Sync upstream
+
+# Merges schnatterer/rooted-graphene main into this repo, keeping the boot animation changes.
+# Requires secret SYNC_TOKEN: fine-grained PAT for this repo with Contents + Workflows (read/write)
+# and Actions (read/write). GITHUB_TOKEN can't push changes to .github/workflows.
+# On merge conflicts this job fails and has to be resolved manually.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_TOKEN }}
+      - name: Merge upstream
+        id: merge
+        run: |
+          git config user.name "GitHub Actions" && git config user.email "actions@github.com"
+          git remote add upstream https://github.com/schnatterer/rooted-graphene.git
+          git fetch upstream main
+          before=$(git rev-parse HEAD)
+          if ! git merge --no-edit upstream/main; then
+            git merge --abort
+            echo "::error::Merge conflict with upstream. Resolve manually: git fetch upstream && git merge upstream/main"
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "${before}" ]]; then
+            git push origin HEAD:main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Already up to date."
+          fi
+      - name: Trigger release
+        if: steps.merge.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
+        run: gh workflow run release-tegu.yaml --ref main

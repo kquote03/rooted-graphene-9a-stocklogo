@@ -1,0 +1,19 @@
+name: Release Pixel 9a (tegu)
+
+on:
+  # Checks for a new GrapheneOS release. Exits early if the release already contains all flavors.
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  tegu:
+    uses: ./.github/workflows/release-single.yaml
+    secrets: inherit
+    with:
+      device-id: tegu
+      magisk-preinit-device: sda10
+      skip-pixincreate: false

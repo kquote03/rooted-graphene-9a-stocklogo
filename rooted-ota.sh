@@ -55,6 +55,9 @@ PIXINCREATE_VERSION=${PIXINCREATE_VERSION:-${DEFAULT_PIXINCREATE_VERSION}}
 
 SKIP_CLEANUP=${SKIP_CLEANUP:-''}
 
+# Replace the GrapheneOS boot animation with this one (e.g. stock Pixel). Set to empty to keep GrapheneOS's.
+BOOTANIMATION_ZIP=${BOOTANIMATION_ZIP-bootanimation/bootanimation.zip}
+
 # For committing to GH pages in different repo, clone it to a different folder and set this var
 PAGES_REPO_FOLDER=${PAGES_REPO_FOLDER:-''}
 
@@ -377,6 +380,9 @@ function patchOTAs() {
         args+=("--module-custota" ".tmp/custota.zip")
         args+=("--module-oemunlockonboot" ".tmp/oemunlockonboot.zip")
       fi
+      if [[ -n "${BOOTANIMATION_ZIP}" ]] && [[ -f "${BOOTANIMATION_ZIP}" ]]; then
+        args+=("--bootanimation" "${BOOTANIMATION_ZIP}")
+      fi
       # We create csig and device JSON for OTA later if necessary
       args+=("--skip-custota-tool")
 
@@ -393,7 +399,7 @@ function patchOTAs() {
         apk add --no-cache openssh uv && \
         uv sync --locked --project .tmp/my-avbroot-setup && \
         uv run --project .tmp/my-avbroot-setup \
-            .tmp/my-avbroot-setup/patch.py ${args[*]} && \
+            bootanimation/patch_wrapper.py .tmp/my-avbroot-setup ${args[*]} && \
         chown -R $(id -u):$(id -g) .tmp"
 
       printGreen "Finished patching file ${targetFile}"
