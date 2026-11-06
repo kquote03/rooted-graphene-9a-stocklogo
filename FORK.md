@@ -20,6 +20,14 @@ Apart from that, follow the installation steps in the [README](README.md), with 
 > ```
 > Without it, `product` is not flashed, the stock GrapheneOS `product` doesn't match the patched `vbmeta`, and the device shows "Your device is corrupt".
 
+> ⚠️ On the Pixel 9a, `adb sideload` in recovery fails with `kPostinstallMountError (63)` (upstream [#313](https://github.com/schnatterer/rooted-graphene/issues/313), [#346](https://github.com/schnatterer/rooted-graphene/issues/346)), so the sideload step can't clear "device is corrupt".
+> Instead, use the workaround from [#338](https://github.com/schnatterer/rooted-graphene/issues/338) (bootloader still unlocked, never switch slots):
+> 1. `fastboot flashall --skip-reboot` (with `ANDROID_PRODUCT_OUT=extracted`, extracted with `--all`)
+> 2. `fastboot reboot-bootloader && fastboot --disable-verity --disable-verification flash vbmeta extracted/vbmeta.img && fastboot reboot`, and let it boot to setup
+> 3. Back in the bootloader: `fastboot reboot fastboot`, then `fastboot flash <p> extracted/<p>.img` for product, system, system_ext, system_dlkm, vendor and vendor_dlkm
+> 4. `fastboot reboot bootloader && fastboot flash vbmeta extracted/vbmeta.img && fastboot reboot`
+> 5. Test an update through Custota (long-press Version, Allow reinstall) before you run `fastboot flashing lock`.
+
 ## What differs from upstream
 
 * `bootanimation/bootanimation.zip`: the stock boot animation, extracted from Google's official tegu OTA (see `bootanimation/SOURCE`).
