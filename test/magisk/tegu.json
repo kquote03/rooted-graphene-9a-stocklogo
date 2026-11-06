@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "full": {
+    "location_ota": "https://github.com/kquote03/rooted-graphene-9a-stocklogo/releases/download/2026110201/tegu-2026110201-ba84f29-magisk-v30.7-test.zip",
+    "location_csig": "https://github.com/kquote03/rooted-graphene-9a-stocklogo/releases/download/2026110201/tegu-2026110201-ba84f29-magisk-v30.7-test.zip.csig"
+  }
+}
