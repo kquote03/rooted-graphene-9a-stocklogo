@@ -12,7 +12,13 @@ It is the same as upstream, except that the GrapheneOS boot animation is replace
 The AVB public key for `fastboot flash avb_custom_key` is `avb_pkmd.bin` on the `gh-pages` branch:
 `curl -sLO https://raw.githubusercontent.com/kquote03/rooted-graphene-9a-stocklogo/gh-pages/avb_pkmd.bin`
 
-Apart from that, follow the installation steps in the [README](README.md).
+Apart from that, follow the installation steps in the [README](README.md), with one change:
+
+> ⚠️ This fork also modifies the `product` partition, so when extracting the OTA for the initial installation you **must** add `--all`:
+> ```bash
+> avbroot ota extract --input /path/to/ota.zip --directory extracted --fastboot --all
+> ```
+> Without it, `product` is not flashed, the stock GrapheneOS `product` doesn't match the patched `vbmeta`, and the device shows "Your device is corrupt".
 
 ## What differs from upstream
 
